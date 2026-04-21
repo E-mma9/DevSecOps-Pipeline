@@ -1,0 +1,20 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: practice-deploymen
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: practiceapp
+  template:
+    metadata:
+      labels:
+        app: practiceapp
+    spec:
+      containers:
+      - name: practice-container
+        image: practiceapp
+        imagePullPolicy: Never
+        ports:
+        - containerPort: 5000
