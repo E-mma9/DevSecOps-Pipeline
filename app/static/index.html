@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TechFlow Tasks</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: #f4f6f9;
+            color: #333;
+            padding: 40px 20px;
+        }
+
+        header {
+            max-width: 700px;
+            margin: 0 auto 32px;
+        }
+
+        header h1 {
+            font-size: 24px;
+            font-weight: 700;
+            color: #1a1a2e;
+        }
+
+        header p {
+            color: #666;
+            margin-top: 4px;
+            font-size: 14px;
+        }
+
+        .container { max-width: 700px; margin: 0 auto; }
+
+        /* Form */
+        .card {
+            background: white;
+            border-radius: 10px;
+            padding: 24px;
+            margin-bottom: 24px;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+        }
+
+        .card h2 {
+            font-size: 16px;
+            margin-bottom: 16px;
+            color: #1a1a2e;
+        }
+
+        input, textarea {
+            width: 100%;
+            padding: 10px 14px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 14px;
+            margin-bottom: 12px;
+            font-family: inherit;
+        }
+
+        input:focus, textarea:focus {
+            outline: none;
+            border-color: #4f8ef7;
+        }
+
+        textarea { resize: vertical; height: 80px; }
+
+        button {
+            background: #4f8ef7;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            font-size: 14px;
+            cursor: pointer;
+            font-weight: 600;
+        }
+
+        button:hover { background: #3a7bd5; }
+
+        /* Task list */
+        .task-item {
+            background: white;
+            border-radius: 10px;
+            padding: 18px 20px;
+            margin-bottom: 12px;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 12px;
+        }
+
+        .task-info { flex: 1; }
+
+        .task-title {
+            font-weight: 600;
+            font-size: 15px;
+            margin-bottom: 4px;
+        }
+
+        .task-desc {
+            font-size: 13px;
+            color: #888;
+            margin-bottom: 8px;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 3px 10px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .badge.open       { background: #e8f0fe; color: #4f8ef7; }
+        .badge.in_progress { background: #fff4e5; color: #f0a500; }
+        .badge.done       { background: #e6f9f0; color: #27ae60; }
+
+        .task-actions { display: flex; gap: 8px; flex-shrink: 0; }
+
+        .btn-status {
+            background: #f0f0f0;
+            color: #555;
+            font-size: 12px;
+            padding: 6px 12px;
+        }
+
+        .btn-status:hover { background: #e0e0e0; }
+
+        .btn-delete {
+            background: #fdecea;
+            color: #e74c3c;
+            font-size: 12px;
+            padding: 6px 12px;
+        }
+
+        .btn-delete:hover { background: #f8c0bb; }
+
+        .empty {
+            text-align: center;
+            color: #aaa;
+            padding: 40px;
+            font-size: 14px;
+        }
+
+        .health {
+            font-size: 12px;
+            color: #27ae60;
+            margin-top: 6px;
+        }
+    </style>
+</head>
+<body>
+
+<header>
+    <h1>🗂 TechFlow Tasks</h1>
+    <p>Interne takenlijst — TechFlow BV</p>
+    <p class="health" id="health-status">Status controleren...</p>
+</header>
+
+<div class="container">
+
+    <!-- Nieuwe taak -->
+    <div class="card">
+        <h2>Nieuwe taak</h2>
+        <input type="text" id="task-title" placeholder="Taaknaam (verplicht)" />
+        <textarea id="task-desc" placeholder="Omschrijving (optioneel)"></textarea>
+        <button onclick="createTask()">Toevoegen</button>
+    </div>
+
+    <!-- Takenlijst -->
+    <div id="task-list">
+        <div class="empty">Laden...</div>
+    </div>
+
+</div>
+
+<script>
+    const API = '';
+
+    const statusOrder = ['open', 'in_progress', 'done'];
+    const statusLabel = { open: 'Open', in_progress: 'Bezig', done: 'Klaar' };
+
+    async function fetchTasks() {
+        const res = await fetch(`${API}/tasks`);
+        const data = await res.json();
+        renderTasks(data.tasks);
+    }
+
+    function renderTasks(tasks) {
+        const list = document.getElementById('task-list');
+        if (!tasks.length) {
+            list.innerHTML = '<div class="empty">Geen taken gevonden. Maak er een aan!</div>';
+            return;
+        }
+        list.innerHTML = tasks.map(task => `
+            <div class="task-item" id="task-${task.id}">
+                <div class="task-info">
+                    <div class="task-title">${task.title}</div>
+                    ${task.description ? `<div class="task-desc">${task.description}</div>` : ''}
+                    <span class="badge ${task.status}">${statusLabel[task.status]}</span>
+                </div>
+                <div class="task-actions">
+                    <button class="btn-status" onclick="nextStatus('${task.id}', '${task.status}')">
+                        Volgende status
+                    </button>
+                    <button class="btn-delete" onclick="deleteTask('${task.id}')">
+                        Verwijder
+                    </button>
+                </div>
+            </div>
+        `).join('');
+    }
+
+    async function createTask() {
+        const title = document.getElementById('task-title').value.trim();
+        const description = document.getElementById('task-desc').value.trim();
+
+        if (!title) {
+            alert('Vul een taaknaam in.');
+            return;
+        }
+
+        await fetch(`${API}/tasks`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ title, description })
+        });
+
+        document.getElementById('task-title').value = '';
+        document.getElementById('task-desc').value = '';
+        fetchTasks();
+    }
+
+    async function nextStatus(id, current) {
+        const next = statusOrder[(statusOrder.indexOf(current) + 1) % statusOrder.length];
+        await fetch(`${API}/tasks/${id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ status: next })
+        });
+        fetchTasks();
+    }
+
+    async function deleteTask(id) {
+        if (!confirm('Taak verwijderen?')) return;
+        await fetch(`${API}/tasks/${id}`, { method: 'DELETE' });
+        fetchTasks();
+    }
+
+    async function checkHealth() {
+        try {
+            const res = await fetch(`${API}/health`);
+            const data = await res.json();
+            document.getElementById('health-status').textContent = `✅ API gezond — ${data.timestamp}`;
+        } catch {
+            document.getElementById('health-status').textContent = '❌ API niet bereikbaar';
+            document.getElementById('health-status').style.color = '#e74c3c';
+        }
+    }
+
+    checkHealth();
+    fetchTasks();
+</script>
+
+</body>
+</html>
